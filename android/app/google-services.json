@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "892648995980",
+    "project_id": "dorm-maintenance",
+    "storage_bucket": "dorm-maintenance.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892648995980:android:9041e08c26189a85a88fa9",
+        "android_client_info": {
+          "package_name": "com.example.dorm_maintenance_reporter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD19L8hTbQmhqZWP4YKc9Qv4SeJnTV_zwU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
