@@ -1,9 +1,13 @@
+import 'package:dorm_maintenance_reporter/material_page.dart';
 import 'package:dorm_maintenance_reporter/report_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:firebase_auth/firebase_auth.dart'; // For user roles
-import 'report_reply.dart'; // 
+import 'report_reply.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 
 class ReportViewingPage extends StatefulWidget {
   const ReportViewingPage({super.key});
@@ -17,14 +21,16 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
   String _userRole = 'none'; // Hold the user role
 
 
-
   @override
   void initState() {
     super.initState();
     _getUserRole();
+    
+      @override
+      Widget build(BuildContext context) {
+        throw UnimplementedError();
+      }
   }
-
-  
 
 
   void _showLogoutConfirmation(BuildContext context) {
@@ -141,6 +147,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
           Map<String, List<DocumentSnapshot>> groupedReports = {
             'Pending': [],
             'Approved by SSD': [],
+            'Inspected by Maintenance Supervisor': [],
             'Action Ongoing': [],
             'Resolved': [],
           };
@@ -315,6 +322,20 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => ReplyToReportPage(reportId: widget.reportId)), 
+                          );
+                        },
+                        child: const Text('Reply to Request'),
+                      );
+                    }
+
+                    if (userRole == 'maintenance_supervisor' && report['status'] == 'Action Ongoing') {
+                      return ElevatedButton(
+                        onPressed: () {
+                          
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SupplyMaterialPage(reportId: widget.reportId)), 
                           );
                         },
                         child: const Text('Reply to Request'),
