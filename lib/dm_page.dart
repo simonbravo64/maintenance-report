@@ -140,6 +140,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
 
           Map<String, List<DocumentSnapshot>> groupedReports = {
             'Pending': [],
+            'Approved by SSD': [],
             'Action Ongoing': [],
             'Resolved': [],
           };
@@ -158,7 +159,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
 
               return reports.isNotEmpty
                   ? ExpansionTile(
-                      title: Text('$status Reports (${reports.length})'),
+                      title: Text('$status(${reports.length})'),
                       initiallyExpanded: status == 'Pending',
                       children: reports.map((report) {
                         String service = report['service'];
@@ -238,6 +239,15 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       'time_resolved': DateFormat('HH:mm').format(DateTime.now()),
     });
   }
+  
+  // confirmation from ssd
+  Future<void> _markAsApproved() async {
+    await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
+      'status': 'Approved by SSD',
+      'date_approved': Timestamp.now(),
+      'time_approved': DateFormat('HH:mm').format(DateTime.now()),
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -267,15 +277,22 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                 Text('Floor: ${report['floor'] ?? 'Unknown'}'),
                 Text('Room: ${report['room'] ?? 'Unknown'}'),
                 Text('Status: ${report['status'] ?? 'Unknown'}'),
-                Text('Date: ${DateFormat('yyyy-MM-dd').format(report['date'].toDate())}'),
-                Text('Time: ${report['time'] ?? 'Unknown'}'),
+                Text('Date Sent: ${DateFormat('yyyy-MM-dd').format(report['date'].toDate())}'),
+                Text('Time Sent: ${report['time'] ?? 'Unknown'}'),
+                if (report['status'] == "Approved by SSD") ...[
+                  const Divider(),
+                  Text("Approved by: ${report['name'] ?? 'N/A'}"),
+                  Text("Date of Approval: ${DateFormat('yyyy-MM-dd').format(report['date_approved'].toDate())}"),
+                  Text("Time of Approval: ${report['time_approved'] ?? 'N/A'}"),
+                ],
                 if (report['status'] == "Action Ongoing") ...[
-                  
-                  Text("Response by: ${report['personnel'] ?? 'N/A'}"),
-                  Text("Expected Date of Action: ${report['date_arrival']}"),
+                  const Divider(),
+                  Text("Response by: ${report['name'] ?? 'N/A'}"),
+                  Text("Expected Date of Action: ${report['date_arrival']}" ),
                   Text("Expected Time of Action: ${report['time_arrival'] ?? 'N/A'}"),
                 ],
                 if (report['status'] == "Resolved") ...[
+                  const Divider(),
                   Text("Date Resolved: ${DateFormat('yyyy-MM-dd').format(report['date_resolved'].toDate())}"),
                   Text("Time Resolved: ${report['time_resolved'] ?? 'N/A'}"),
                 ],
@@ -334,6 +351,39 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                           }
                         },
                         child: const Text('Mark as Resolved'),
+                      );
+                    }
+
+                    // Show "Approve Report" button only for users with the "SSD" role
+                    if (userRole == 'SSD' && report['status'] == 'Pending') {
+                      return ElevatedButton(
+                        onPressed: () async {
+                          // Show confirmation dialog
+                          bool confirmed = await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Confirm'),
+                              content: const Text('Approve this report?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Confirm'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          // If confirmed, mark as resolved
+                          if (confirmed) {
+                            _markAsApproved();
+                            Navigator.pop(context);
+                          }
+                        },
+                        child: const Text('Approve Report'),
                       );
                     }
 
