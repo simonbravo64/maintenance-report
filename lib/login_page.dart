@@ -50,7 +50,7 @@ class LoginPageState extends State<LoginPage> {
       String? role = await getUserRole(user!.uid);
 
        // Navigate to the corresponding page based on the user's role
-        if (role == 'dorm_manager'||role == 'maintenance') {
+        if (role == 'dorm_manager'||role == 'SSD'||role == 'SAO'||role=='maintenance_supervisor'||role=='FAD'||role=='supply_officer') {
           
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
         } else {
