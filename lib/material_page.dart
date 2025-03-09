@@ -1,12 +1,16 @@
 // lib/material_page.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dorm_maintenance_reporter/material_availability_container.dart';
+import 'package:dorm_maintenance_reporter/material_labor_container.dart';
 import 'package:dorm_maintenance_reporter/material_request_container.dart';
 import 'package:flutter/material.dart';
 
 class SupplyMaterialPage extends StatefulWidget {
   final String reportId;
-  const SupplyMaterialPage({Key? key, required this.reportId})
+  final String role;
+  const SupplyMaterialPage(
+      {Key? key, required this.reportId, required this.role})
       : super(key: key);
 
   @override
@@ -80,7 +84,17 @@ class _SupplyState extends State<SupplyMaterialPage> {
                           ],
                         ),
                         MaterialRequestContainer(
-                            materials: materials, reportId: widget.reportId),
+                            materials: materials,
+                            reportId: widget.reportId,
+                            role: widget.role),
+                        MaterialAvailabilityContainer(
+                            materials: materials,
+                            reportId: widget.reportId,
+                            role: widget.role),
+                        MaterialLaborContainer(
+                            materials: materials,
+                            reportId: widget.reportId,
+                            role: widget.role)
                       ]))));
         });
   }

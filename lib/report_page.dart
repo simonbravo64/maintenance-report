@@ -75,6 +75,7 @@ final TextEditingController _detailsController = TextEditingController();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Report Submitted Successfully')),
           );
+          
           Navigator.pop(context); // Go back to the previous page
         }
       } catch (e) {

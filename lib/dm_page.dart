@@ -335,7 +335,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SupplyMaterialPage(reportId: widget.reportId)), 
+                              builder: (context) => SupplyMaterialPage(reportId: widget.reportId, role: userRole,)), 
                           );
                         },
                         child: const Text('Reply to Request'),

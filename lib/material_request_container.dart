@@ -8,15 +8,17 @@ import 'package:intl/intl.dart';
 class MaterialRequestContainer extends StatefulWidget {
   final String materials;
   final String reportId;
+  final String role;
   const MaterialRequestContainer({
     Key? key,
     required this.materials,
     required this.reportId,
+    required this.role,
   }) : super(key: key);
 
   @override
   _MaterialRequestContainerState createState() =>
-      _MaterialRequestContainerState();
+      _MaterialRequestContainerState(this.role);
 }
 
 class _MaterialRequestContainerState extends State<MaterialRequestContainer> {
@@ -26,6 +28,10 @@ class _MaterialRequestContainerState extends State<MaterialRequestContainer> {
 
   final List<DataRow> _rows = [];
   final List<String> _rowstr = [];
+
+  _MaterialRequestContainerState(String role) {
+    isExpanded = role != 'maintenance_supervisor';
+  }
 
   void onAddEntry(String unit, String description, int quantity) {
     setState(() {
@@ -95,6 +101,7 @@ class _MaterialRequestContainerState extends State<MaterialRequestContainer> {
     return Column(
       children: [
         ExpansionTile(
+          initiallyExpanded: isExpanded,
           title: const Text('Request Material/Supply'),
           trailing:
               Icon(isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down),
@@ -134,57 +141,67 @@ class _MaterialRequestContainerState extends State<MaterialRequestContainer> {
                 ],
                 rows: _rows,
               ),
-            MaterialEntryForm(onAddEntry: onAddEntry),
+            if (widget.role == 'maintenance_supervisor')
+              MaterialEntryForm(onAddEntry: onAddEntry),
           ],
         ),
         TextField(
+          enabled: widget.role == 'maintenance_supervisor',
           controller: remarksController,
           maxLines: null,
           decoration: const InputDecoration(
-            labelText: 'Enter Remarks',
+            labelText: 'Maintenance Remarks',
             border: OutlineInputBorder(),
           ),
         ),
-        ElevatedButton(
-          onPressed: () async {
-            var materials = FirebaseFirestore.instance.collection('materials');
-            var payload = {
-              'remarks': remarksController.text,
-              'list': _rows.map((dataRow) {
-                var map = <String, dynamic>{};
-                map['unit'] = (dataRow.cells[0].child as Text).data.toString();
-                map['item'] = (dataRow.cells[1].child as Text).data.toString();
-                map['qty'] = int.parse(
-                  (dataRow.cells[2].child as Text).data.toString(),
-                );
+        if (widget.role == 'maintenance_supervisor')
+          ElevatedButton(
+            onPressed: () async {
+              var materials =
+                  FirebaseFirestore.instance.collection('materials');
+              var payload = {
+                'remarks': remarksController.text,
+                'list': _rows.map((dataRow) {
+                  var map = <String, dynamic>{};
+                  map['unit'] =
+                      (dataRow.cells[0].child as Text).data.toString();
+                  map['item'] =
+                      (dataRow.cells[1].child as Text).data.toString();
+                  map['qty'] = int.parse(
+                    (dataRow.cells[2].child as Text).data.toString(),
+                  );
 
-                return map;
-              }).toList(), // Convert to list
-            };
-            
-            await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
+                  return map;
+                }).toList(), // Convert to list
+              };
+
+              await FirebaseFirestore.instance
+                  .collection('reports')
+                  .doc(widget.reportId)
+                  .update({
                 'status': 'Inspected by Maintenance Supervisor',
                 'date_inspected': Timestamp.now(),
                 'time_inspected': DateFormat('HH:mm').format(DateTime.now()),
               });
 
-            if (existing) {
-              await materials.doc(widget.materials).update(payload);
-              Navigator.pop(context, widget.reportId);
-              print('Success');
-            } else {
-              var docRef = await materials.add(payload);
-              await FirebaseFirestore.instance
-                  .collection('reports')
-                  .doc(widget.reportId)
-                  .update({'materials': docRef.id});
-              
-              Navigator.pop(context, docRef.id);
-              print('Success: ${docRef.id}');
-            };
-          },
-          child: const Text('Submit'),
-        ),
+              if (existing) {
+                await materials.doc(widget.materials).update(payload);
+                Navigator.pop(context, widget.reportId);
+                print('Success');
+              } else {
+                var docRef = await materials.add(payload);
+                await FirebaseFirestore.instance
+                    .collection('reports')
+                    .doc(widget.reportId)
+                    .update({'materials': docRef.id});
+
+                Navigator.pop(context, docRef.id);
+                print('Success: ${docRef.id}');
+              }
+              ;
+            },
+            child: const Text('Submit'),
+          ),
       ],
     );
   }
