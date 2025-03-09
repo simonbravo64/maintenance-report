@@ -107,9 +107,19 @@ class _MaterialAvailabilityContainerState
                 ElevatedButton(
                   onPressed: () async {
                     if (requestForPurchase) {
-                      // TODO: set status to 'pending'
+                      await FirebaseFirestore.instance
+                      .collection('materials')
+                      .doc(widget.reportId)
+                      .update({
+                        'status': 'Requesting Purchase of Materials',
+                      });
                     } else {
-                      // TODO: set status to 'available'
+                      await FirebaseFirestore.instance
+                      .collection('materials')
+                      .doc(widget.reportId)
+                      .update({
+                        'status': 'Available',
+                      });
                     }
                   },
                   child: Text(requestForPurchase
