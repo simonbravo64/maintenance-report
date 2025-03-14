@@ -30,7 +30,7 @@ class LoginPageState extends State<LoginPage> {
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
-        .set({'email': email, 'role': 'maintenance'});
+        .set({'email': email, 'role': 'dorm_manager'});
   }
 
   Future<void> _login() async {
@@ -50,7 +50,7 @@ class LoginPageState extends State<LoginPage> {
       String? role = await getUserRole(user!.uid);
 
        // Navigate to the corresponding page based on the user's role
-        if (role == 'dorm_manager'||role == 'SSD'||role == 'SAO'||role=='maintenance_supervisor'||role=='FAD'||role=='supply_officer') {
+        if (role == 'dorm_manager'||role == 'admin') {
           
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
         } else {

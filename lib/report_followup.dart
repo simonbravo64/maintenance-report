@@ -2,23 +2,22 @@ import 'package:dorm_maintenance_reporter/dm_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// For date formatting
 
-class ReplyToReportPage extends StatefulWidget {
+class FollowUpReportPage extends StatefulWidget {
   final String reportId;
 
-  const ReplyToReportPage({super.key, required this.reportId});
+  const FollowUpReportPage({super.key, required this.reportId});
 
   @override
-  ReplyToReportPageState createState() => ReplyToReportPageState();
+  FollowUpReportPageState createState() => FollowUpReportPageState();
 }
 
-class ReplyToReportPageState extends State<ReplyToReportPage> {
+class FollowUpReportPageState extends State<FollowUpReportPage> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
 
   final TextEditingController _remarksController = TextEditingController();
-  String _status = 'Select...'; // Default value
+
 
 
   Future<void> _fetchUserData() async {
@@ -50,7 +49,7 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reply to Report')),
+      appBar: AppBar(title: const Text('Follow Up on Remarks')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -58,22 +57,7 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
           child: Column(
             children: [
 
-              DropdownButtonFormField<String>(
-                value: _status,
-                decoration: const InputDecoration(labelText: 'Status of Report'),
-                items: ['Select...','Pending', 'Addressed', 'Cancelled', 'Denied'].map((status) {
-                  return DropdownMenuItem(
-                    value: status,
-                    child: Text(status),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _status = value!;
-                  });
-                },
-              ),
-
+              
                TextFormField(
                 controller: _remarksController,
                 decoration: const InputDecoration(labelText: 'Remarks'),
@@ -91,7 +75,7 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     String name = _name;
-                    _replyToReport(name, _remarksController.text, _status);
+                    _replyToReport(name, _remarksController.text);
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
                   }
                 },
@@ -104,11 +88,11 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
     );
   }
 
-  Future<void> _replyToReport(String _name, String remarks, String newStatus) async {
+  Future<void> _replyToReport(String _name, String remarks) async {
     await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
-      'admin': _name,
-      'admin_remarks': remarks,
-      'status': newStatus,
+      'dm': _name,
+      'dm_remarks': remarks,
+      'status': 'Followed-Up by DM',
     });
   }
 }

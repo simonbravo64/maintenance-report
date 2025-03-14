@@ -14,6 +14,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
+  final TextEditingController _titleController = TextEditingController();
 final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _roomController = TextEditingController();
@@ -21,7 +22,7 @@ final TextEditingController _detailsController = TextEditingController();
   // User data from Firestore
   String _name = '';
   String _dormLocation = 'Select...'; // Default value
-  String _service = 'Select...';
+  
 
   // Fetch user details from Firestore
   Future<void> _fetchUserData() async {
@@ -60,14 +61,14 @@ final TextEditingController _detailsController = TextEditingController();
       try {
         await FirebaseFirestore.instance.collection('reports').add({
           'name': name, // Name fetched from the user's document
-          'service': _service,
+          'title': _titleController.text,
           'date': now, // Store the date as a timestamp
           'time': time, // Store time as a string
           'details': _detailsController.text,
           'dorm': _dormLocation,
           'floor': _floorController.text,
           'room': _roomController.text,
-          'status': 'Pending', // Default status
+          'status': 'New', // Default status
         });
 
         // Show success message
@@ -102,22 +103,17 @@ final TextEditingController _detailsController = TextEditingController();
           child: ListView(
             children: [
               
-              
-              DropdownButtonFormField<String>(
-                value: _service,
-                decoration: const InputDecoration(labelText: 'Service'),
-                items: ['Select...','Plumbing', 'Civil Works', 'Sanitary', 'Electrical'].map((service) {
-                  return DropdownMenuItem(
-                    value:service,
-                    child: Text(service),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _service = value!;
-                  });
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter title';
+                  }
+                  return null;
                 },
               ),
+              
               TextFormField(
                 controller: _detailsController,
                 decoration: const InputDecoration(labelText: 'Details'),
