@@ -1,12 +1,12 @@
-import 'package:dorm_maintenance_reporter/material_page.dart';
+
 import 'package:dorm_maintenance_reporter/report_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:firebase_auth/firebase_auth.dart'; // For user roles
+import 'report_followup.dart';
 import 'report_reply.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+
 
 
 class ReportViewingPage extends StatefulWidget {
@@ -81,7 +81,26 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
     setState(() {}); // Rebuilds the widget to show updated content
   }
 
-
+  Color getFolderColor(String status) {
+    switch (status) {
+      case 'New':
+        return Colors.orangeAccent; // Orange for new reports
+      case 'Pending':
+        return Colors.amber; // Yellow for pending reports
+      case 'Addressed':
+        return Colors.blueAccent; // Blue for addressed reports
+      case 'Cancelled':
+        return Colors.redAccent; // Red for cancelled reports
+      case 'Denied':
+        return Colors.grey; // Grey for denied reports
+      case 'Followed-Up by DM':
+        return Colors.purpleAccent; // Purple for followed-up reports
+      case 'Resolved':
+        return Colors.green; // Green for resolved reports
+      default:
+        return Colors.black12; // Default light grey
+    }
+  }
   // Function to get the reports from Firestore
   Stream<QuerySnapshot> _getReportStream() {
     return FirebaseFirestore.instance
@@ -145,54 +164,73 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
 
 
           Map<String, List<DocumentSnapshot>> groupedReports = {
+            'New': [],
             'Pending': [],
-            'Approved by SSD': [],
-            'Inspected by Maintenance Supervisor': [],
-            'Action Ongoing': [],
+            'Addressed': [],
+            'Cancelled': [],
+            'Denied': [],
+            'Followed-Up by DM': [],
             'Resolved': [],
           };
           
           for (var doc in snapshot.data!.docs) {
-            String status = doc['status'] ?? 'Pending';
+            String status = doc['status'] ?? 'New';
             if (groupedReports.containsKey(status)) {
               groupedReports[status]?.add(doc);
             }
           }
 
           return ListView(
-            children: groupedReports.entries.map((entry) {
-              String status = entry.key;
-              List<DocumentSnapshot> reports = entry.value;
+  children: groupedReports.entries.map((entry) {
+    String status = entry.key;
+    List<DocumentSnapshot> reports = entry.value;
 
-              return reports.isNotEmpty
-                  ? ExpansionTile(
-                      title: Text('$status(${reports.length})'),
-                      initiallyExpanded: status == 'Pending',
-                      children: reports.map((report) {
-                        String service = report['service'];
-                        String time = report['time'];
-                        Timestamp timestamp = report['date'];
-                        DateTime date = timestamp.toDate();
-                        String formattedDate = DateFormat('MM/dd/yyyy').format(date);
-                        
-                        return ListTile(
-                          title: Text(service),
-                          subtitle: Text('Date: $formattedDate, Time: $time'),
-                          onTap: () {
-                            // Navigate to the report detail page
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ReportDetailPage(reportId: report.id), // Pass report ID to detail page
-                              ),
-                            );
-                          },
-                        );
-                  }).toList(),
-                )
-              : const SizedBox.shrink();
-            }).toList(),
+    if (reports.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+      decoration: BoxDecoration(
+        color: getFolderColor(status), // Apply color based on status
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ExpansionTile(
+        title: Text('$status (${reports.length})'),
+        initiallyExpanded: status == 'New',
+        children: reports.asMap().entries.map((entry) {
+          int index = entry.key;
+          DocumentSnapshot report = entry.value;
+          
+          String service = report['title'];
+          String time = report['time'];
+          Timestamp timestamp = report['date'];
+          DateTime date = timestamp.toDate();
+          String formattedDate = DateFormat('MM/dd/yyyy').format(date);
+
+          // Alternate row colors based on index
+          Color rowColor = index.isEven ? Colors.grey[200]! : Colors.white;
+
+          return Container(
+            color: rowColor,
+            child: ListTile(
+              title: Text(service),
+              subtitle: Text('Date: $formattedDate, Time: $time'),
+              onTap: () {
+                // Navigate to the report detail page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportDetailPage(reportId: report.id),
+                  ),
+                );
+              },
+            ),
           );
+        }).toList(),
+      ),
+    );
+  }).toList(),
+);
+
         },
       ),
       ),
@@ -277,7 +315,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Reported by: ${report['name'] ?? 'Unknown'}'),
-                Text('Service Requested: ${report['service'] ?? 'Unknown'}'),
+                Text('Title of Request: ${report['title'] ?? 'Unknown'}'),
                 Text('Details: ${report['details'] ?? 'No details provided'}'),
                 Text('Dorm: ${report['dorm'] ?? 'Unknown'}'),
                 const Text('Location Details:'),
@@ -286,17 +324,17 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                 Text('Status: ${report['status'] ?? 'Unknown'}'),
                 Text('Date Sent: ${DateFormat('yyyy-MM-dd').format(report['date'].toDate())}'),
                 Text('Time Sent: ${report['time'] ?? 'Unknown'}'),
-                if (report['status'] == "Approved by SSD") ...[
+                
+                if (report['status'] != "New" && report['status'] != "Resolved") ...[
                   const Divider(),
-                  Text("Approved by: ${report['name'] ?? 'N/A'}"),
-                  Text("Date of Approval: ${DateFormat('yyyy-MM-dd').format(report['date_approved'].toDate())}"),
-                  Text("Time of Approval: ${report['time_approved'] ?? 'N/A'}"),
+                  Text("Response by: ${report['admin'] ?? 'N/A'}"),
+                  Text("Remarks: ${report['admin_remarks'] ?? 'N/A'}"),
                 ],
-                if (report['status'] == "Action Ongoing") ...[
+
+                if (report['status'] == "Followed-Up by DM") ...[
                   const Divider(),
-                  Text("Response by: ${report['name'] ?? 'N/A'}"),
-                  Text("Expected Date of Action: ${report['date_arrival']}" ),
-                  Text("Expected Time of Action: ${report['time_arrival'] ?? 'N/A'}"),
+                  Text("Response by: ${report['dm'] ?? 'N/A'}"),
+                  Text("Remarks: ${report['dm_remarks'] ?? 'N/A'}"),
                 ],
                 if (report['status'] == "Resolved") ...[
                   const Divider(),
@@ -313,8 +351,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
                     String userRole = roleSnapshot.data!;
 
-                    // Show "Reply" button only for users with the "maintenance" role
-                    if (userRole == 'maintenance' && report['status'] == 'Pending') {
+                    // Show "Reply" button only for users with the "admin" role
+                    if (userRole == 'admin' && (report['status'] == 'New' || report['status'] == 'Followed-Up by DM')) {
                       return ElevatedButton(
                         onPressed: () {
                           // Navigate to Reply page
@@ -327,88 +365,70 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                         child: const Text('Reply to Request'),
                       );
                     }
+                    
+                    List<Widget> actionButtons = [];
 
-                    if (userRole == 'maintenance_supervisor' && report['status'] == 'Action Ongoing') {
-                      return ElevatedButton(
-                        onPressed: () {
-                          
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SupplyMaterialPage(reportId: widget.reportId, role: userRole,)), 
-                          );
-                        },
-                        child: const Text('Reply to Request'),
+                    if (userRole == 'dorm_manager' && (report['status'] != 'New' && report['status'] != 'Resolved' && report['status'] != 'Followed-Up by DM')) {
+                      actionButtons.add(
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FollowUpReportPage(reportId: widget.reportId),
+                              ),
+                             );
+                          },
+                          child: const Text('Follow Up'),
+                        ),
                       );
                     }
 
-                    // Show "Mark as Resolved" button only for users with the "dorm_manager" role
-                    if (userRole == 'dorm_manager' && report['status'] == 'Action Ongoing') {
-                      return ElevatedButton(
-                        onPressed: () async {
+                  // Show "Mark as Resolved" button only for users with the "dorm_manager" role
+                    if (userRole == 'dorm_manager' && (report['status'] != 'New' && report['status'] != 'Resolved' && report['status'] != 'Followed-Up by DM')) {
+                      actionButtons.add(
+                        ElevatedButton(
+                          onPressed: () async {
                           // Show confirmation dialog
-                          bool confirmed = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Confirm'),
-                              content: const Text('Mark this report as resolved?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Confirm'),
-                                ),
-                              ],
-                            ),
-                          );
+                            bool confirmed = await showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Confirm'),
+                                  content: const Text('Mark this report as resolved?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Confirm'),
+                                      ),
+                                    ],
+                                  ),
+                                );
 
-                          // If confirmed, mark as resolved
-                          if (confirmed) {
-                            _markAsResolved();
-                            Navigator.pop(context);
-                          }
-                        },
-                        child: const Text('Mark as Resolved'),
+                              // If confirmed, mark as resolved
+                              if (confirmed) {
+                                _markAsResolved();
+                                Navigator.pop(context);
+                              }
+                            },
+                            child: const Text('Mark as Resolved'),
+                          ),
+                        );
+                      }
+
+                      // Return a column with all the buttons
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: actionButtons,
                       );
-                    }
 
-                    // Show "Approve Report" button only for users with the "SSD" role
-                    if (userRole == 'SSD' && report['status'] == 'Pending') {
-                      return ElevatedButton(
-                        onPressed: () async {
-                          // Show confirmation dialog
-                          bool confirmed = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Confirm'),
-                              content: const Text('Approve this report?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Confirm'),
-                                ),
-                              ],
-                            ),
-                          );
 
-                          // If confirmed, mark as resolved
-                          if (confirmed) {
-                            _markAsApproved();
-                            Navigator.pop(context);
-                          }
-                        },
-                        child: const Text('Approve Report'),
-                      );
-                    }
+                    
 
-                    return Container(); // Return an empty container if no button should be shown
+
                   },
                 ),
               ],
