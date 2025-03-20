@@ -16,12 +16,10 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   // Form controllers
   final TextEditingController _titleController = TextEditingController();
 final TextEditingController _detailsController = TextEditingController();
-  final TextEditingController _floorController = TextEditingController();
-  final TextEditingController _roomController = TextEditingController();
-
+  
   // User data from Firestore
   String _name = '';
-  String _dormLocation = 'Select...'; // Default value
+   // Default value
   
 
   // Fetch user details from Firestore
@@ -65,9 +63,6 @@ final TextEditingController _detailsController = TextEditingController();
           'date': now, // Store the date as a timestamp
           'time': time, // Store time as a string
           'details': _detailsController.text,
-          'dorm': _dormLocation,
-          'floor': _floorController.text,
-          'room': _roomController.text,
           'status': 'New', // Default status
         });
 
@@ -124,42 +119,7 @@ final TextEditingController _detailsController = TextEditingController();
                   return null;
                 },
               ),
-              // Dropdown for dorm selection
-              DropdownButtonFormField<String>(
-                value: _dormLocation,
-                decoration: const InputDecoration(labelText: 'Dorm'),
-                items: ['Select...','Dorm 1', 'Dorm 2', 'Dorm 3'].map((dorm) {
-                  return DropdownMenuItem(
-                    value: dorm,
-                    child: Text(dorm),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _dormLocation = value!;
-                  });
-                },
-              ),
-              TextFormField(
-                controller: _floorController,
-                decoration: const InputDecoration(labelText: 'Floor'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the floor';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _roomController,
-                decoration: const InputDecoration(labelText: 'Room'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the room';
-                  }
-                  return null;
-                },
-              ),
+              
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _submitReport,
