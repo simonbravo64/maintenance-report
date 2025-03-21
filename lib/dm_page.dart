@@ -81,7 +81,26 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
     setState(() {}); // Rebuilds the widget to show updated content
   }
 
-
+  Color getFolderColor(String status) {
+    switch (status) {
+      case 'New':
+        return Colors.orangeAccent; // Orange for new reports
+      case 'Pending':
+        return Colors.amber; // Yellow for pending reports
+      case 'Addressed':
+        return Colors.blueAccent; // Blue for addressed reports
+      case 'Cancelled':
+        return Colors.redAccent; // Red for cancelled reports
+      case 'Denied':
+        return Colors.grey; // Grey for denied reports
+      case 'Followed-Up by DM':
+        return Colors.purpleAccent; // Purple for followed-up reports
+      case 'Resolved':
+        return Colors.green; // Green for resolved reports
+      default:
+        return Colors.black12; // Default light grey
+    }
+  }
   // Function to get the reports from Firestore
   Stream<QuerySnapshot> _getReportStream() {
     return FirebaseFirestore.instance
@@ -162,10 +181,11 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
           }
 
           return ListView(
-            children: groupedReports.entries.map((entry) {
-              String status = entry.key;
-              List<DocumentSnapshot> reports = entry.value;
+  children: groupedReports.entries.map((entry) {
+    String status = entry.key;
+    List<DocumentSnapshot> reports = entry.value;
 
+<<<<<<< HEAD
               return reports.isNotEmpty
                   ? ExpansionTile(
                       title: Text('$status(${reports.length})'),
@@ -194,7 +214,54 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
                 )
               : const SizedBox.shrink();
             }).toList(),
+=======
+    if (reports.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+      decoration: BoxDecoration(
+        color: getFolderColor(status), // Apply color based on status
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ExpansionTile(
+        title: Text('$status (${reports.length})'),
+        initiallyExpanded: status == 'New',
+        children: reports.asMap().entries.map((entry) {
+          int index = entry.key;
+          DocumentSnapshot report = entry.value;
+          
+          String service = report['title'];
+          String time = report['time'];
+          Timestamp timestamp = report['date'];
+          DateTime date = timestamp.toDate();
+          String formattedDate = DateFormat('MM/dd/yyyy').format(date);
+
+          // Alternate row colors based on index
+          Color rowColor = index.isEven ? Colors.grey[200]! : Colors.white;
+
+          return Container(
+            color: rowColor,
+            child: ListTile(
+              title: Text(service),
+              subtitle: Text('Date: $formattedDate, Time: $time'),
+              onTap: () {
+                // Navigate to the report detail page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportDetailPage(reportId: report.id),
+                  ),
+                );
+              },
+            ),
+>>>>>>> 78d4f79c5f65c6d1636475deee6d91191d9fdaf1
           );
+        }).toList(),
+      ),
+    );
+  }).toList(),
+);
+
         },
       ),
       ),
@@ -281,10 +348,6 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                 Text('Reported by: ${report['name'] ?? 'Unknown'}'),
                 Text('Title of Request: ${report['title'] ?? 'Unknown'}'),
                 Text('Details: ${report['details'] ?? 'No details provided'}'),
-                Text('Dorm: ${report['dorm'] ?? 'Unknown'}'),
-                const Text('Location Details:'),
-                Text('Floor: ${report['floor'] ?? 'Unknown'}'),
-                Text('Room: ${report['room'] ?? 'Unknown'}'),
                 Text('Status: ${report['status'] ?? 'Unknown'}'),
                 Text('Date Sent: ${DateFormat('yyyy-MM-dd').format(report['date'].toDate())}'),
                 Text('Time Sent: ${report['time'] ?? 'Unknown'}'),
