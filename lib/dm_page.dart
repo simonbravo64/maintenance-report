@@ -285,14 +285,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     });
   }
   
-  // confirmation from ssd
-  Future<void> _markAsApproved() async {
-    await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
-      'status': 'Approved by SSD',
-      'date_approved': Timestamp.now(),
-      'time_approved': DateFormat('HH:mm').format(DateTime.now()),
-    });
-  }
+  
 
   @override
   Widget build(BuildContext context) {

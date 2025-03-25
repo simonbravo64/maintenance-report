@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 
 class ReportSubmissionPage extends StatefulWidget {
   const ReportSubmissionPage({super.key});
@@ -58,6 +60,57 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     }
   }
 
+  Future<void> _sendEmail(String senderName, String reportTitle) async {
+    String username = "spbravo@brc.pshs.edu.ph"; 
+    String password = "wkzsrtmdttpabrwp"; // App password 
+
+    // Fetch all admin user emails from Firestore
+    List<String> adminEmails = await _getAdminEmails();
+
+    if (adminEmails.isEmpty) {
+      print("❌ No maintenance emails found.");
+      return;
+    }
+
+    final smtpServer = gmail(username, password); // Gmail SMTP settings
+
+    final message = Message()
+      ..from = Address(username, 'Dorm Maintenance Report Hub') // Sender info
+      ..recipients.addAll(adminEmails) // Add all maintenance emails
+      ..subject = 'New Maintenance Report Submitted'
+      ..text = 'A new report has been submitted by $senderName.\n\nTitle: $reportTitle';
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('✅ Email sent to admin: ${sendReport.toString()}');
+    } catch (e) {
+      print('❌ Failed to send email: $e');
+    }
+  }
+
+  Future<List<String>> _getAdminEmails() async {
+  List<String> emails = [];
+
+  try {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: 'admin') // Filter by role
+        .get();
+
+    for (var doc in querySnapshot.docs) {
+      String email = doc['email']; 
+      emails.add(email);
+    }
+
+    print("📧 Admin Emails: $emails"); // Debugging
+  } catch (e) {
+    print("❌ Error fetching maintenance emails: $e");
+  }
+
+  return emails;
+}
+
+
   // Submit the report
   Future<void> _submitReport() async {
     if (_formKey.currentState!.validate()) {
@@ -75,6 +128,9 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
           'status': 'New',
           'imagePath': _imageFile?.path ?? '', // Store image path (optional)
         });
+
+        // Send email notification
+        await _sendEmail(_name, _titleController.text);
 
         // Show success message
         if (mounted) {
@@ -128,6 +184,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
               ),
 
               const SizedBox(height: 20),
+              const Text("Send Attachment"),
 
               // Image Picker Buttons
               Row(
@@ -165,4 +222,3 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     );
   }
 }
-

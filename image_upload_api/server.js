@@ -35,7 +35,7 @@ db.connect(err => {
 app.post('/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).send({ message: 'No file uploaded' });
 
-  const imageUrl = `http://your-server-ip:5000/uploads/${req.file.filename}`;
+  const imageUrl = `http://192.168.1.14:5000/uploads/${req.file.filename}`;
   const sql = "INSERT INTO reports (image_url) VALUES (?)";
   
   db.query(sql, [imageUrl], (err, result) => {
