@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:firebase_auth/firebase_auth.dart'; // For user roles
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 import 'report_followup.dart';
 import 'report_reply.dart';
 
@@ -275,14 +277,66 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     return 'none';
   }
 
+  Future<List<String>> _fetchAdminEmails() async {
+    List<String> emails = [];
+    try {
+      QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'admin') // Filter for admin users
+          .get();
+
+      for (var doc in adminSnapshot.docs) {
+        String? email = doc['email'];
+        if (email != null && email.isNotEmpty) {
+          emails.add(email);
+        }
+      }
+    } catch (e) {
+      print('Error fetching admin emails: $e');
+    }
+    return emails;
+  }
+
+  Future<void> _sendEmailNotification(List<String> recipientEmail, String reportTitle) async {
+  String username = "spbravo@brc.pshs.edu.ph"; 
+  String password = "wkzsrtmdttpabrwp"; // App password
+
+  final smtpServer = gmail(username, password);
+
+  final message = Message()
+    ..from = Address(username, 'Dorm Maintenance Report Hub')
+    ..recipients.add(recipientEmail)
+    ..subject = 'Your Report has been Resolved'
+    ..text = '''
+Hello,
+
+A report "$reportTitle" has been marked as resolved.
+
+''';
+
+  try {
+    await send(message, smtpServer);
+    print('✅ Email sent to $recipientEmail');
+  } catch (e) {
+    print('❌ Failed to send email: $e');
+  }
+}
+
 
   // Mark the report as resolved
   Future<void> _markAsResolved() async {
+    DocumentSnapshot reportDoc = await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).get();
     await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
       'status': 'Resolved',
       'date_resolved': Timestamp.now(),
       'time_resolved': DateFormat('HH:mm').format(DateTime.now()),
+      
     });
+    List<String> adminEmails = await _fetchAdminEmails();
+    String reportTitle = reportDoc['title'] ?? 'Report';
+      if (adminEmails.isNotEmpty) {
+      await _sendEmailNotification(adminEmails, reportTitle);
+      }
   }
   
   
@@ -313,6 +367,30 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                 Text('Status: ${report['status'] ?? 'Unknown'}'),
                 Text('Date Sent: ${DateFormat('yyyy-MM-dd').format(report['date'].toDate())}'),
                 Text('Time Sent: ${report['time'] ?? 'Unknown'}'),
+                if (report['imageUrl'] != null && report['imageUrl'].isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FullScreenImage(imageUrl: report['imageUrl']),
+                        ),
+                      );
+                    },
+                    child: Center(
+                      child: Hero(
+                        tag: "imagePreview",
+                        child: Image.network(
+                          report['imageUrl'],
+                          height: 250,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const Center(child: Text("No Image Provided", style: TextStyle(color: Colors.red))),
                 
                 if (report['status'] != "New" && report['status'] != "Resolved") ...[
                   const Divider(),
@@ -425,6 +503,40 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class FullScreenImage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImage({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black, // Dark background for better visibility
+      body: Stack(
+        children: [
+          Center(
+            child: Image.network(imageUrl, fit: BoxFit.contain),
+          ),
+          Positioned(
+            top: 40, // Move button down for better placement
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6), // Background for visibility
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, size: 30, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

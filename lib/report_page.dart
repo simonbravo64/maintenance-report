@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ReportSubmissionPage extends StatefulWidget {
   const ReportSubmissionPage({super.key});
@@ -23,17 +24,17 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   final TextEditingController _detailsController = TextEditingController();
   
   String _name = '';
-<<<<<<< HEAD
-<<<<<<< HEAD
-  String _dormLocation = 'Select...'; // Default value
-=======
-   // Default value
->>>>>>> 78d4f79c5f65c6d1636475deee6d91191d9fdaf1
-  
-=======
-  File? _imageFile; // Store selected image
+  File? _imageFile;
   final ImagePicker _picker = ImagePicker();
->>>>>>> 7c59b2c26ec8ded7108c2ea32825b81f4f77b3a3
+  
+  // Imgur Client ID (Replace with your own)
+  final String _imgurClientId = "37130fc40b866b5"; 
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
 
   // Fetch user details
   Future<void> _fetchUserData() async {
@@ -53,12 +54,6 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-  }
-
   // Pick image from gallery or camera
   Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
@@ -69,56 +64,80 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     }
   }
 
+  // Upload image to Imgur and return the image URL
+  Future<String?> _uploadImageToImgur(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.imgur.com/3/image'),
+      );
+      request.headers['Authorization'] = 'Client-ID $_imgurClientId';
+      request.files.add(
+        await http.MultipartFile.fromPath('image', imageFile.path),
+      );
+
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+      var jsonData = jsonDecode(responseData);
+
+      if (response.statusCode == 200) {
+        return jsonData['data']['link']; // Return the Imgur image URL
+      } else {
+        print('❌ Failed to upload image: ${jsonData['data']['error']}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Image upload error: $e');
+      return null;
+    }
+  }
+
   Future<void> _sendEmail(String senderName, String reportTitle) async {
     String username = "spbravo@brc.pshs.edu.ph"; 
-    String password = "wkzsrtmdttpabrwp"; // App password 
+    String password = "wkzsrtmdttpabrwp"; 
 
-    // Fetch all admin user emails from Firestore
     List<String> adminEmails = await _getAdminEmails();
 
     if (adminEmails.isEmpty) {
-      print("❌ No maintenance emails found.");
+      print("❌ No admin emails found.");
       return;
     }
 
-    final smtpServer = gmail(username, password); // Gmail SMTP settings
+    final smtpServer = gmail(username, password);
 
     final message = Message()
-      ..from = Address(username, 'Dorm Maintenance Report Hub') // Sender info
-      ..recipients.addAll(adminEmails) // Add all maintenance emails
+      ..from = Address(username, 'Dorm Maintenance Report Hub')
+      ..recipients.addAll(adminEmails)
       ..subject = 'New Maintenance Report Submitted'
       ..text = 'A new report has been submitted by $senderName.\n\nTitle: $reportTitle';
 
     try {
-      final sendReport = await send(message, smtpServer);
-      print('✅ Email sent to admin: ${sendReport.toString()}');
+      await send(message, smtpServer);
+      print('✅ Email sent to admins.');
     } catch (e) {
       print('❌ Failed to send email: $e');
     }
   }
 
   Future<List<String>> _getAdminEmails() async {
-  List<String> emails = [];
+    List<String> emails = [];
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'admin')
+          .get();
 
-  try {
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('role', isEqualTo: 'admin') // Filter by role
-        .get();
+      for (var doc in querySnapshot.docs) {
+        String email = doc['email'];
+        emails.add(email);
+      }
 
-    for (var doc in querySnapshot.docs) {
-      String email = doc['email']; 
-      emails.add(email);
+      print("📧 Admin Emails: $emails");
+    } catch (e) {
+      print("❌ Error fetching admin emails: $e");
     }
-
-    print("📧 Admin Emails: $emails"); // Debugging
-  } catch (e) {
-    print("❌ Error fetching maintenance emails: $e");
+    return emails;
   }
-
-  return emails;
-}
-
 
   // Submit the report
   Future<void> _submitReport() async {
@@ -126,6 +145,13 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
       DateTime now = DateTime.now();
       String date = DateFormat('yyyy-MM-dd').format(now);
       String time = DateFormat('HH:mm').format(now);
+      
+      String? imageUrl;
+
+      // Upload image if selected
+      if (_imageFile != null) {
+        imageUrl = await _uploadImageToImgur(_imageFile!);
+      }
 
       try {
         await FirebaseFirestore.instance.collection('reports').add({
@@ -144,14 +170,11 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
           'status': 'New', // Default status
 =======
           'status': 'New',
-          'imagePath': _imageFile?.path ?? '', // Store image path (optional)
->>>>>>> 7c59b2c26ec8ded7108c2ea32825b81f4f77b3a3
+          'imageUrl': imageUrl ?? '', // Store Imgur link in Firestore
         });
 
-        // Send email notification
         await _sendEmail(_name, _titleController.text);
 
-        // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Report Submitted Successfully')),
@@ -183,29 +206,18 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter title';
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.isEmpty ? 'Please enter title' : null,
               ),
               
               TextFormField(
                 controller: _detailsController,
                 decoration: const InputDecoration(labelText: 'Details'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter details';
-                  }
-                  return null;
-                },
+                validator: (value) => value == null || value.isEmpty ? 'Please enter details' : null,
               ),
 
               const SizedBox(height: 20),
-              const Text("Send Attachment"),
+              const Text("Attach an Image"),
 
-              // Image Picker Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -223,7 +235,6 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
                 ],
               ),
 
-              // Show selected image preview
               if (_imageFile != null) ...[
                 const SizedBox(height: 10),
                 Image.file(_imageFile!, height: 200),
@@ -241,3 +252,4 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     );
   }
 }
+
