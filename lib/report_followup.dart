@@ -2,6 +2,8 @@ import 'package:dorm_maintenance_reporter/dm_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 
 class FollowUpReportPage extends StatefulWidget {
   final String reportId;
@@ -15,10 +17,13 @@ class FollowUpReportPage extends StatefulWidget {
 class FollowUpReportPageState extends State<FollowUpReportPage> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
-
   final TextEditingController _remarksController = TextEditingController();
 
-
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
 
   Future<void> _fetchUserData() async {
     try {
@@ -33,18 +38,9 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
         });
       }
     } catch (e) {
-      
       print('Error fetching user data: $e');
-      
     }
   }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-  }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -56,9 +52,7 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
           key: _formKey,
           child: Column(
             children: [
-
-              
-               TextFormField(
+              TextFormField(
                 controller: _remarksController,
                 decoration: const InputDecoration(labelText: 'Remarks'),
                 validator: (value) {
@@ -68,15 +62,17 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
                   return null;
                 },
               ),
-            
-              
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    String name = _name;
-                    _replyToReport(name, _remarksController.text);
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
+                    await _followUpOnReport(_name, _remarksController.text);
+                    if (mounted) {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const ReportViewingPage()));
+                    }
                   }
                 },
                 child: const Text("Submit"),
@@ -88,11 +84,74 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
     );
   }
 
-  Future<void> _replyToReport(String _name, String remarks) async {
-    await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
-      'dm': _name,
-      'dm_remarks': remarks,
-      'status': 'Followed-Up by DM',
-    });
+  Future<void> _followUpOnReport(String dmName, String remarks) async {
+    try {
+      DocumentSnapshot reportDoc = await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).get();
+      // Update Firestore
+      await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
+        'dm': dmName,
+        'dm_remarks': remarks,
+        'status': 'Followed-Up by DM',
+      });
+
+      String reportTitle = reportDoc['title'] ?? 'Report';
+
+      // Fetch Admin Emails
+      List<String> adminEmails = await _fetchAdminEmails();
+
+      // Send email notification to all admins
+      if (adminEmails.isNotEmpty) {
+        await _sendEmailNotification(adminEmails, dmName, remarks, reportTitle);
+      }
+    } catch (e) {
+      print('Error following up on report: $e');
+    }
+  }
+
+  Future<List<String>> _fetchAdminEmails() async {
+    List<String> emails = [];
+    try {
+      QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'admin') // Filter for admin users
+          .get();
+
+      for (var doc in adminSnapshot.docs) {
+        String? email = doc['email'];
+        if (email != null && email.isNotEmpty) {
+          emails.add(email);
+        }
+      }
+    } catch (e) {
+      print('Error fetching admin emails: $e');
+    }
+    return emails;
+  }
+
+  Future<void> _sendEmailNotification(
+      List<String> recipientEmails, String dmName, String remarks, String reportTitle) async {
+    String username = "spbravo@brc.pshs.edu.ph"; 
+    String password = "wkzsrtmdttpabrwp"; // App password 
+
+    final smtpServer = gmail(username, password);
+
+    final message = Message()
+      ..from = Address(username, 'Dorm Maintenance Report Hub')
+      ..recipients.addAll(recipientEmails)
+      ..subject = 'Follow-Up on Report: $reportTitle'
+      ..text = '''
+$dmName has followed up on the report "$reportTitle".
+
+Remarks: $remarks
+
+''';
+
+    try {
+      await send(message, smtpServer);
+      print('✅ Email sent successfully to all admins.');
+    } catch (e) {
+      print('❌ Failed to send email: $e');
+    }
   }
 }
+

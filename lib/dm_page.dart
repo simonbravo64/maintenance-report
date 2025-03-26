@@ -185,36 +185,6 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
     String status = entry.key;
     List<DocumentSnapshot> reports = entry.value;
 
-<<<<<<< HEAD
-              return reports.isNotEmpty
-                  ? ExpansionTile(
-                      title: Text('$status(${reports.length})'),
-                      initiallyExpanded: status == 'New',
-                      children: reports.map((report) {
-                        String service = report['title'];
-                        String time = report['time'];
-                        Timestamp timestamp = report['date'];
-                        DateTime date = timestamp.toDate();
-                        String formattedDate = DateFormat('MM/dd/yyyy').format(date);
-                        
-                        return ListTile(
-                          title: Text(service),
-                          subtitle: Text('Date: $formattedDate, Time: $time'),
-                          onTap: () {
-                            // Navigate to the report detail page
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ReportDetailPage(reportId: report.id), // Pass report ID to detail page
-                              ),
-                            );
-                          },
-                        );
-                  }).toList(),
-                )
-              : const SizedBox.shrink();
-            }).toList(),
-=======
     if (reports.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -254,7 +224,6 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
                 );
               },
             ),
->>>>>>> 78d4f79c5f65c6d1636475deee6d91191d9fdaf1
           );
         }).toList(),
       ),
@@ -316,14 +285,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     });
   }
   
-  // confirmation from ssd
-  Future<void> _markAsApproved() async {
-    await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
-      'status': 'Approved by SSD',
-      'date_approved': Timestamp.now(),
-      'time_approved': DateFormat('HH:mm').format(DateTime.now()),
-    });
-  }
+  
 
   @override
   Widget build(BuildContext context) {
