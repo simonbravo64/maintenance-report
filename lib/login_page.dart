@@ -1,3 +1,4 @@
+import 'package:dorm_maintenance_reporter/launch_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -50,14 +51,14 @@ class LoginPageState extends State<LoginPage> {
       String? role = await getUserRole(user!.uid);
 
        // Navigate to the corresponding page based on the user's role
-        if (role == 'dorm_manager'||role == 'admin') {
+        if (role == 'dorm_manager'||role == 'admin'||role == 'superadmin') {
           
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
         } else {
           // Handle unexpected roles, or if the role doesn't exist
 
           addUserToFirestore(user.uid, email);
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
 
         }
     } on FirebaseAuthException catch (e) {

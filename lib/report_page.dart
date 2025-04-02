@@ -92,7 +92,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     }
   }
 
-  Future<void> _sendEmail(String senderName, String reportTitle) async {
+  Future<void> _sendEmail(String senderName, String reportTitle, String reportDetails) async {
     String username = "spbravo@brc.pshs.edu.ph"; 
     String password = "wkzsrtmdttpabrwp"; 
 
@@ -109,7 +109,8 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
       ..from = Address(username, 'Dorm Maintenance Report Hub')
       ..recipients.addAll(adminEmails)
       ..subject = 'New Maintenance Report Submitted'
-      ..text = 'A new report has been submitted by $senderName.\n\nTitle: $reportTitle';
+      ..text = 'A new report has been submitted by $senderName.\n\nTitle: $reportTitle\n\nDetails: $reportDetails';
+;
 
     try {
       await send(message, smtpServer);
@@ -164,7 +165,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
           'imageUrl': imageUrl ?? '', // Store Imgur link in Firestore
         });
 
-        await _sendEmail(_name, _titleController.text);
+        await _sendEmail(_name, _titleController.text,_detailsController.text);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +183,12 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     }
   }
 
+  void _removeImage() {
+    setState(() {
+      _imageFile = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,7 +203,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
+                decoration: const InputDecoration(labelText: 'Report Title'),
                 validator: (value) => value == null || value.isEmpty ? 'Please enter title' : null,
               ),
               
@@ -229,6 +236,13 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
               if (_imageFile != null) ...[
                 const SizedBox(height: 10),
                 Image.file(_imageFile!, height: 200),
+                TextButton(
+                  onPressed: _removeImage,
+                  child: const Text(
+                    'Remove Image',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
               ],
 
               const SizedBox(height: 20),

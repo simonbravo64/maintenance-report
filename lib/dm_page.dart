@@ -1,4 +1,7 @@
 
+import 'package:dorm_maintenance_reporter/admin_panel_page.dart';
+import 'package:dorm_maintenance_reporter/launch_page.dart';
+import 'package:dorm_maintenance_reporter/profile_page.dart';
 import 'package:dorm_maintenance_reporter/report_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,7 +23,8 @@ class ReportViewingPage extends StatefulWidget {
 
 class _ReportViewingPageState extends State<ReportViewingPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  String _userRole = 'none'; // Hold the user role
+  String? _userRole; 
+  int _selectedIndex = 1;
 
 
   @override
@@ -72,7 +76,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
     if (user != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       setState(() {
-        _userRole = userDoc['role']; // Assign the role to the _userRole variable
+        _userRole = userDoc['role']; 
         
       });
     }
@@ -118,9 +122,37 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
   }).join(' ');
   }
   User? currentUser = FirebaseAuth.instance.currentUser;
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return; // Avoid unnecessary rebuilds
+
+    
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
+        break;
+      case 1:
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportViewingPage()));
+        break;
+      case 2:
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfilePage()));
+        break;
+      
+      }
+  }
   
   @override
   Widget build(BuildContext context) {
+    if (_userRole == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()), // Show loading spinner
+      );
+    }
     return Scaffold(
       
       appBar: AppBar(
@@ -251,6 +283,17 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
               child: const Icon(Icons.add),
             )
           : null,
+            bottomNavigationBar: BottomNavigationBar(
+  currentIndex: _selectedIndex,
+  onTap: _onItemTapped,
+  
+  items: const [
+    BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Reports'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          
+  ],
+),
     );
   }
 }
@@ -305,7 +348,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
   final message = Message()
     ..from = Address(username, 'Dorm Maintenance Report Hub')
-    ..recipients.add(recipientEmail)
+    ..recipients.addAll(recipientEmail)
     ..subject = 'Your Report has been Resolved'
     ..text = '''
 Hello,
