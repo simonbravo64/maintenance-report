@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dm_page.dart';
-import 'admin_panel_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -69,28 +68,48 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _updateEmail(String newEmail) async {
-    try {
-      User? currentUser = _auth.currentUser;
-      if (currentUser != null) {
-        await currentUser.updateEmail(newEmail);
+  try {
+    User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      // Send verification email to the new email
+      await currentUser.verifyBeforeUpdateEmail(newEmail);
 
-        // Update email in Firestore
-        await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).update({
-          'email': newEmail,
-        });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'A verification email has been sent to $newEmail. Please verify it before updating. Log out and log back in to update the profile.',
+          ),
+        ),
+      );
 
-        setState(() {
-          _userEmail = newEmail;
-        });
-
-
-        Navigator.pop(context); // Close the dialog
-      }
-    } catch (e) {
-      print('Error updating email: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      // Show a confirmation dialog for users
+      _showVerificationReminder(newEmail);
     }
+  } catch (e) {
+    print('Error updating email: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
+    );
   }
+}
+
+  void _showVerificationReminder(String newEmail) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Verify Your Email"),
+      content: Text(
+          "A verification email has been sent to $newEmail. Please check your inbox and click the verification link before continuing."),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Future<void> _sendPasswordResetEmail() async {
     try {
@@ -271,7 +290,9 @@ class ProfilePageState extends State<ProfilePage> {
             TextButton(
               onPressed: () {
                 _emailController.text = _userEmail;
-                _showPasswordPromptForEmailChange(_emailController.text);
+                 _showEditDialog('Email', _emailController, (newEmail) {
+                  _showPasswordPromptForEmailChange(newEmail);
+                });
               },
               child: const Text('Change Email'),
             ),
