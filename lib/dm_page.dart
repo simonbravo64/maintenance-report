@@ -1,5 +1,4 @@
 
-import 'package:dorm_maintenance_reporter/admin_panel_page.dart';
 import 'package:dorm_maintenance_reporter/launch_page.dart';
 import 'package:dorm_maintenance_reporter/profile_page.dart';
 import 'package:dorm_maintenance_reporter/report_page.dart';

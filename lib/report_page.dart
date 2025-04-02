@@ -144,7 +144,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   Future<void> _submitReport() async {
     if (_formKey.currentState!.validate()) {
       DateTime now = DateTime.now();
-      String date = DateFormat('yyyy-MM-dd').format(now);
+      DateFormat('yyyy-MM-dd').format(now);
       String time = DateFormat('HH:mm').format(now);
       
       String? imageUrl;
@@ -161,15 +161,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
           'date': now,
           'time': time,
           'details': _detailsController.text,
-<<<<<<< HEAD
-<<<<<<< HEAD
-          'dorm': _dormLocation,
-          'floor': _floorController.text,
-          'room': _roomController.text,
-=======
->>>>>>> 78d4f79c5f65c6d1636475deee6d91191d9fdaf1
-          'status': 'New', // Default status
-=======
+
           'status': 'New',
           'imageUrl': imageUrl ?? '', // Store Imgur link in Firestore
         });

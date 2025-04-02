@@ -1,10 +1,6 @@
-import 'package:dorm_maintenance_reporter/dm_page.dart';
-import 'package:dorm_maintenance_reporter/launch_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_page.dart';
-import 'profile_page.dart';
 
 class AdminPanel extends StatefulWidget {
   const AdminPanel({super.key});
@@ -22,7 +18,7 @@ class AdminPanelState extends State<AdminPanel> {
   
   String selectedRole = 'dorm_manager'; // Default role
   String? _userRole;
-  int _selectedIndex = 3; // Default index for Admin Panel
+
 
   @override
   void initState() {
