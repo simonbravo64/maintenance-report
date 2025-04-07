@@ -91,7 +91,25 @@ class ProfilePageState extends State<ProfilePage> {
       SnackBar(content: Text('Error: ${e.toString()}')),
     );
   }
-}
+
+  FirebaseAuth.instance.userChanges().listen((User? user) async {
+      if (user != null && user.email == newEmail && user.emailVerified) {
+        // Update Firestore once email is verified
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'email': newEmail});
+
+        setState(() {
+          _userEmail = newEmail;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email updated in Firestore.")),
+        );
+      }
+    });
+  } 
 
   void _showVerificationReminder(String newEmail) {
   showDialog(
