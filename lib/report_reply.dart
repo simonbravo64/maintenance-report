@@ -133,7 +133,7 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
     try {
       QuerySnapshot dmSnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('role', isEqualTo: 'dorm_manager') // Get users with role "dorm_manager"
+          .where('role', isEqualTo: 'user') // Get users with role "user"
           .get();
 
       for (var doc in dmSnapshot.docs) {

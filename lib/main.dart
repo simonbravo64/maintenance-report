@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'launch_page.dart';
 
 
 void main() async {
@@ -24,14 +25,14 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.lightBlue, // Set the default AppBar color
+          backgroundColor: Colors.lightBlue, 
         ),
         primarySwatch: Colors.blue,
       ),
       home: const AuthWrapper(),
       routes: {
         '/home': (context) => const HomePage(),
-        '/login': (context) => const LoginPage(), // Define the login route here
+        '/login': (context) => const LoginPage(),
       },
     );
   }

@@ -2,7 +2,6 @@ import 'package:dorm_maintenance_reporter/launch_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dm_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,8 +30,59 @@ class LoginPageState extends State<LoginPage> {
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
-        .set({'email': email, 'role': 'dorm_manager'});
+        .set({'email': email, 'role': 'user'});
   }
+
+  void _showForgotPasswordDialog() {
+  final TextEditingController _resetEmailController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Reset Password"),
+      content: TextField(
+        controller: _resetEmailController,
+        decoration: const InputDecoration(
+          labelText: "Enter your email",
+        ),
+        keyboardType: TextInputType.emailAddress,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        TextButton(
+          onPressed: () async {
+            final email = _resetEmailController.text.trim();
+            if (email.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Please enter an email")),
+              );
+              return;
+            }
+            try {
+              await _auth.sendPasswordResetEmail(email: email);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Password reset email sent! Check your inbox."),
+                ),
+              );
+            } catch (e) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Error: ${e.toString()}")),
+              );
+            }
+          },
+          child: const Text("Send"),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Future<void> _login() async {
     if (_formKey.currentState?.validate() ?? false) {
@@ -51,7 +101,7 @@ class LoginPageState extends State<LoginPage> {
       String? role = await getUserRole(user!.uid);
 
        // Navigate to the corresponding page based on the user's role
-        if (role == 'dorm_manager'||role == 'admin'||role == 'superadmin') {
+        if (role == 'user'||role == 'admin'||role == 'superadmin') {
           
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
         } else {
@@ -123,6 +173,13 @@ class LoginPageState extends State<LoginPage> {
                   }
                   return null;
                 },
+              ),
+              TextButton(
+                onPressed: _showForgotPasswordDialog,
+                child: const Text(
+                'Forgot Password?',
+                style: TextStyle(color: Colors.blueAccent),
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

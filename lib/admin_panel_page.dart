@@ -16,7 +16,7 @@ class AdminPanelState extends State<AdminPanel> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   
-  String selectedRole = 'dorm_manager'; // Default role
+  String selectedRole = 'user'; // Default role
   String? _userRole;
 
 
@@ -176,7 +176,7 @@ class AdminPanelState extends State<AdminPanel> {
                       selectedRole = value!;
                     });
                   },
-                  items: ['dorm_manager', 'admin', 'superadmin']
+                  items: ['user', 'admin', 'superadmin']
                       .map((role) => DropdownMenuItem(
                             value: role,
                             child: Text(role),
@@ -222,7 +222,7 @@ class AdminPanelState extends State<AdminPanel> {
                                 _updateUserRole(userId, newRole);
                               }
                             },
-                            items: ['admin', 'dorm_manager', 'superadmin']
+                            items: ['admin', 'user', 'superadmin']
                                 .map((role) => DropdownMenuItem(
                                       value: role,
                                       child: Text(role),

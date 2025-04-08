@@ -267,7 +267,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
         },
       ),
       ),
-    floatingActionButton: _userRole == 'dorm_manager' 
+    floatingActionButton: _userRole == 'user' 
           ? FloatingActionButton(
               onPressed: () {
                 // Navigate to the report submission page
@@ -477,7 +477,7 @@ A report "$reportTitle" has been marked as resolved.
                     
                     List<Widget> actionButtons = [];
 
-                    if (userRole == 'dorm_manager' && (report['status'] != 'New' && report['status'] != 'Resolved' && report['status'] != 'Followed-Up by DM')) {
+                    if (userRole == 'user' && (report['status'] != 'New' && report['status'] != 'Resolved' && report['status'] != 'Followed-Up by DM')) {
                       actionButtons.add(
                         ElevatedButton(
                           onPressed: () {
@@ -493,8 +493,8 @@ A report "$reportTitle" has been marked as resolved.
                       );
                     }
 
-                  // Show "Mark as Resolved" button only for users with the "dorm_manager" role
-                    if (userRole == 'dorm_manager' && (report['status'] != 'New' && report['status'] != 'Resolved' && report['status'] != 'Followed-Up by DM')) {
+                  // Show "Mark as Resolved" button only for users with the "user" role
+                    if (userRole == 'user' && (report['status'] != 'New' && report['status'] != 'Resolved' && report['status'] != 'Followed-Up by DM')) {
                       actionButtons.add(
                         ElevatedButton(
                           onPressed: () async {
