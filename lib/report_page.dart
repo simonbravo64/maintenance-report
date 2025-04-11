@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -26,8 +27,9 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   String _name = '';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
   
-  // Imgur Client ID (Replace with your own)
+  
   final String _imgurClientId = "37130fc40b866b5"; 
 
   @override
@@ -81,7 +83,7 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
       var jsonData = jsonDecode(responseData);
 
       if (response.statusCode == 200) {
-        return jsonData['data']['link']; // Return the Imgur image URL
+        return jsonData['data']['link']; 
       } else {
         print('❌ Failed to upload image: ${jsonData['data']['error']}');
         return null;
@@ -93,8 +95,8 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   }
 
   Future<void> _sendEmail(String senderName, String reportTitle, String reportDetails) async {
-    String username = "spbravo@brc.pshs.edu.ph"; 
-    String password = "wkzsrtmdttpabrwp"; 
+    String username = "dormmaintenancereporthub@gmail.com"; 
+    String password = "qplwtaaptzornudb"; 
 
     List<String> adminEmails = await _getAdminEmails();
 
@@ -140,49 +142,56 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
     return emails;
   }
 
-  // Submit the report
   Future<void> _submitReport() async {
-    if (_formKey.currentState!.validate()) {
-      DateTime now = DateTime.now();
-      DateFormat('yyyy-MM-dd').format(now);
-      String time = DateFormat('HH:mm').format(now);
-      
-      String? imageUrl;
+  if (_formKey.currentState!.validate()) {
+    setState(() => _isLoading = true); // Show spinner
+    DateTime now = DateTime.now();
+    String time = DateFormat('HH:mm').format(now);
 
-      // Upload image if selected
-      if (_imageFile != null) {
-        imageUrl = await _uploadImageToImgur(_imageFile!);
+    String? imageUrl;
+    String? email;
+
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      email = currentUser.email;
+    }
+
+    if (_imageFile != null) {
+      imageUrl = await _uploadImageToImgur(_imageFile!);
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('reports').add({
+        'name': _name,
+        'title': _titleController.text,
+        'date': now,
+        'time': time,
+        'details': _detailsController.text,
+        'status': 'New',
+        'imageUrl': imageUrl ?? '',
+        'user_email': email ?? '', // Save reporter's email
+      });
+
+      await _sendEmail(_name, _titleController.text, _detailsController.text);
+
+      if (mounted) {
+        setState(() => _isLoading = false); // Hide spinner
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Report Submitted Successfully')),
+        );
+        Navigator.pop(context);
       }
-
-      try {
-        await FirebaseFirestore.instance.collection('reports').add({
-          'name': _name,
-          'title': _titleController.text,
-          'date': now,
-          'time': time,
-          'details': _detailsController.text,
-
-          'status': 'New',
-          'imageUrl': imageUrl ?? '', // Store Imgur link in Firestore
-        });
-
-        await _sendEmail(_name, _titleController.text,_detailsController.text);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Report Submitted Successfully')),
-          );
-          Navigator.pop(context);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error submitting report: $e')),
-          );
-        }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error submitting report: $e')),
+        );
       }
     }
   }
+}
+
 
   void _removeImage() {
     setState(() {
@@ -191,71 +200,79 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Submit a Report'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Report Title'),
-                validator: (value) => value == null || value.isEmpty ? 'Please enter title' : null,
-              ),
-              
-              TextFormField(
-                controller: _detailsController,
-                decoration: const InputDecoration(labelText: 'Details'),
-                validator: (value) => value == null || value.isEmpty ? 'Please enter details' : null,
-              ),
-
-              const SizedBox(height: 20),
-              const Text("Attach an Image"),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Submit a Report'),
+    ),
+    body: _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: ListView(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.image),
-                    label: const Text('Gallery'),
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Report Title',
+                      counterText: ''),
+                    maxLength: 50,
+                    inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter title'
+                        : null,
                   ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera),
-                    label: const Text('Camera'),
+                  TextFormField(
+                    controller: _detailsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Details',
+                      counterText: ''),
+                    maxLength: 250,
+                    inputFormatters: [LengthLimitingTextInputFormatter(250)],
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter details'
+                        : null,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text("Attach an Image"),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.gallery),
+                        icon: const Icon(Icons.image),
+                        label: const Text('Gallery'),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.camera),
+                        icon: const Icon(Icons.camera),
+                        label: const Text('Camera'),
+                      ),
+                    ],
+                  ),
+                  if (_imageFile != null) ...[
+                    const SizedBox(height: 10),
+                    Image.file(_imageFile!, height: 200),
+                    TextButton(
+                      onPressed: _removeImage,
+                      child: const Text(
+                        'Remove Image',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _submitReport,
+                    child: const Text('Submit Report'),
                   ),
                 ],
               ),
-
-              if (_imageFile != null) ...[
-                const SizedBox(height: 10),
-                Image.file(_imageFile!, height: 200),
-                TextButton(
-                  onPressed: _removeImage,
-                  child: const Text(
-                    'Remove Image',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitReport,
-                child: const Text('Submit Report'),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
+  );
 }
-
+}

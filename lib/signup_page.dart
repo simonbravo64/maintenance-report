@@ -43,7 +43,7 @@ class _SignUpPageState extends State<SignUpPage> {
         });
 
         // Navigate to launch page or dashboard
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushNamed(context, '/login');
       }
     } on FirebaseAuthException catch (e) {
       setState(() {

@@ -16,7 +16,7 @@ class AdminPanelState extends State<AdminPanel> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   
-  String selectedRole = 'user'; // Default role
+  String selectedRole = 'user';
   String? _userRole;
 
 
@@ -39,7 +39,7 @@ class AdminPanelState extends State<AdminPanel> {
     } catch (e) {
       print('Error fetching user role: $e');
       setState(() {
-        _userRole = 'user'; // Default role in case of an error
+        _userRole = 'user'; 
       });
     }
   }
@@ -48,13 +48,6 @@ class AdminPanelState extends State<AdminPanel> {
     await _firestore.collection('users').doc(userId).update({'role': newRole});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Role updated to $newRole')),
-    );
-  }
-
-  Future<void> _deleteUser(String userId) async {
-    await _firestore.collection('users').doc(userId).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('User deleted')),
     );
   }
 
@@ -89,7 +82,7 @@ class AdminPanelState extends State<AdminPanel> {
       emailController.clear();
       passwordController.clear();
       nameController.clear();
-      setState(() {}); // Refresh the user list
+      setState(() {});
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -120,7 +113,7 @@ class AdminPanelState extends State<AdminPanel> {
                 Navigator.of(context).pushNamedAndRemoveUntil(
                   '/login', 
                   (Route<dynamic> route) => false,
-                ); // Clear all previous routes
+                );
               },
               child: const Text("Logout"),
             ),
@@ -134,7 +127,7 @@ class AdminPanelState extends State<AdminPanel> {
   Widget build(BuildContext context) {
     if (_userRole == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()), // Show loading spinner
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -229,10 +222,7 @@ class AdminPanelState extends State<AdminPanel> {
                                     ))
                                 .toList(),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteUser(userId),
-                          ),
+                          
                         ],
                       ),
                     );

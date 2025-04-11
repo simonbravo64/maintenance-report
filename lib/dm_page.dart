@@ -340,15 +340,15 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   }
 
   Future<void> _sendEmailNotification(List<String> recipientEmail, String reportTitle) async {
-  String username = "spbravo@brc.pshs.edu.ph"; 
-  String password = "wkzsrtmdttpabrwp"; // App password
+  String username = "dormmaintenancereporthub@gmail.com"; 
+  String password = "qplwtaaptzornudb"; // App password
 
   final smtpServer = gmail(username, password);
 
   final message = Message()
     ..from = Address(username, 'Dorm Maintenance Report Hub')
     ..recipients.addAll(recipientEmail)
-    ..subject = 'Your Report has been Resolved'
+    ..subject = 'A Report has been Resolved'
     ..text = '''
 Hello,
 

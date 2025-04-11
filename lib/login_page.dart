@@ -103,12 +103,12 @@ class LoginPageState extends State<LoginPage> {
        // Navigate to the corresponding page based on the user's role
         if (role == 'user'||role == 'admin'||role == 'superadmin') {
           
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
         } else {
           // Handle unexpected roles, or if the role doesn't exist
 
           addUserToFirestore(user.uid, email);
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const LaunchPage()));
 
         }
     } on FirebaseAuthException catch (e) {

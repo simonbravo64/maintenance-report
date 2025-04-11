@@ -2,6 +2,7 @@ import 'package:dorm_maintenance_reporter/dm_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
@@ -18,6 +19,7 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
   final TextEditingController _remarksController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -46,49 +48,66 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Follow Up on Remarks')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(labelText: 'Remarks'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter remarks';
-                  }
-                  return null;
-                },
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _remarksController,
+                      decoration: const InputDecoration(
+                          labelText: 'Remarks', counterText: ''),
+                      maxLength: 250,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(250)
+                      ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter remarks';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() => _isLoading = true);
+                          await _followUpOnReport(_name, _remarksController.text);
+                          if (mounted) {
+                            setState(() => _isLoading = false);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ReportViewingPage(),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text("Submit"),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    await _followUpOnReport(_name, _remarksController.text);
-                    if (mounted) {
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const ReportViewingPage()));
-                    }
-                  }
-                },
-                child: const Text("Submit"),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
   Future<void> _followUpOnReport(String dmName, String remarks) async {
     try {
-      DocumentSnapshot reportDoc = await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).get();
-      // Update Firestore
-      await FirebaseFirestore.instance.collection('reports').doc(widget.reportId).update({
+      DocumentSnapshot reportDoc = await FirebaseFirestore.instance
+          .collection('reports')
+          .doc(widget.reportId)
+          .get();
+
+      await FirebaseFirestore.instance
+          .collection('reports')
+          .doc(widget.reportId)
+          .update({
         'dm': dmName,
         'dm_remarks': remarks,
         'status': 'Followed-Up by DM',
@@ -96,10 +115,8 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
 
       String reportTitle = reportDoc['title'] ?? 'Report';
 
-      // Fetch Admin Emails
       List<String> adminEmails = await _fetchAdminEmails();
 
-      // Send email notification to all admins
       if (adminEmails.isNotEmpty) {
         await _sendEmailNotification(adminEmails, dmName, remarks, reportTitle);
       }
@@ -113,7 +130,7 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
     try {
       QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('role', isEqualTo: 'admin') // Filter for admin users
+          .where('role', isEqualTo: 'admin')
           .get();
 
       for (var doc in adminSnapshot.docs) {
@@ -129,9 +146,13 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
   }
 
   Future<void> _sendEmailNotification(
-      List<String> recipientEmails, String dmName, String remarks, String reportTitle) async {
-    String username = "spbravo@brc.pshs.edu.ph"; 
-    String password = "wkzsrtmdttpabrwp"; // App password 
+    List<String> recipientEmails,
+    String dmName,
+    String remarks,
+    String reportTitle,
+  ) async {
+    String username = "dormmaintenancereporthub@gmail.com";
+    String password = "qplwtaaptzornudb";
 
     final smtpServer = gmail(username, password);
 
@@ -154,4 +175,3 @@ Remarks: $remarks
     }
   }
 }
-
