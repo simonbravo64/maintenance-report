@@ -24,12 +24,13 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _userRole; 
   int _selectedIndex = 1;
+  String? _uid;
 
 
   @override
   void initState() {
     super.initState();
-    _getUserRole();
+    _loadUserDetails();
     
       @override
       Widget build(BuildContext context) {
@@ -69,17 +70,17 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
     );
   }
 
-  // Function to get the user's role from Firestore
-  Future<void> _getUserRole() async {
-    final User? user = _auth.currentUser;
-    if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      setState(() {
-        _userRole = userDoc['role']; 
-        
-      });
-    }
+  
+  Future<void> _loadUserDetails() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    setState(() {
+      _userRole = userDoc['role'];
+      _uid = user.uid;
+    });
   }
+}
   
   Future<void> _refreshReports() async {
     await Future.delayed(const Duration(seconds: 1)); // Simulate a short delay for the refresh
@@ -107,12 +108,15 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
     }
   }
   // Function to get the reports from Firestore
-  Stream<QuerySnapshot> _getReportStream() {
-    return FirebaseFirestore.instance
-        .collection('reports')
-        .where('status') // Filter reports
-        .snapshots();
+ Stream<QuerySnapshot> _getReportStream(String role, String uid) {
+  final reportsRef = FirebaseFirestore.instance.collection('reports');
+
+  if (role == 'user') {
+    return reportsRef.where('user_id', isEqualTo: uid).snapshots();
+  } else {
+    return reportsRef.snapshots();
   }
+}
   String capitalizeEachWord(String sentence) {
   if (sentence.isEmpty) return sentence;
   return sentence.split('_').map((word) {
@@ -145,47 +149,31 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
       }
   }
   
-  @override
-  Widget build(BuildContext context) {
-    if (_userRole == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()), // Show loading spinner
-      );
-    }
-    return Scaffold(
-      
-      appBar: AppBar(
-        title: StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUser?.uid)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.hasData && snapshot.data!.exists) {
-              String? role = snapshot.data!['role'];
-              if (role != null) {
-                // Capitalize the role if available
-                role = capitalizeEachWord(role);
-                return Text("Reports - $role");
-              }
-            }
-            return const Text("Reports"); // Default title if role is unavailable
+ @override
+Widget build(BuildContext context) {
+  if (_userRole == null || _uid == null) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()), // Show loading spinner
+    );
+  }
+
+  return Scaffold(
+    appBar: AppBar(
+      title: Text("Reports - ${capitalizeEachWord(_userRole!)}"),
+      automaticallyImplyLeading: false,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: () {
+            _showLogoutConfirmation(context);
           },
-        ),
-        automaticallyImplyLeading: false, // Remove the default back button
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              _showLogoutConfirmation(context);
-            }
-          )
-        ]
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshReports,
+        )
+      ],
+    ),
+    body: RefreshIndicator(
+      onRefresh: _refreshReports,
       child: StreamBuilder<QuerySnapshot>(
-        stream: _getReportStream(),
+        stream: _getReportStream(_userRole!, _uid!), // use role and uid here
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -194,7 +182,6 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No reports available.'));
           }
-
 
           Map<String, List<DocumentSnapshot>> groupedReports = {
             'New': [],
@@ -205,7 +192,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
             'Followed-Up by DM': [],
             'Resolved': [],
           };
-          
+
           for (var doc in snapshot.data!.docs) {
             String status = doc['status'] ?? 'New';
             if (groupedReports.containsKey(status)) {

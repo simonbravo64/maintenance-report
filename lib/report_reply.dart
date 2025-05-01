@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:dorm_maintenance_reporter/dm_page.dart';
-import 'package:flutter/services.dart'; // Required for maxLength
+import 'package:flutter/services.dart'; 
 
 class ReplyToReportPage extends StatefulWidget {
   final String reportId;
@@ -49,20 +49,29 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
   }
 
   Future<void> _fetchReporterEmail() async {
-    try {
-      DocumentSnapshot reportDoc = await FirebaseFirestore.instance
-          .collection('reports')
-          .doc(widget.reportId)
+  try {
+    DocumentSnapshot reportDoc = await FirebaseFirestore.instance
+        .collection('reports')
+        .doc(widget.reportId)
+        .get();
+
+    if (reportDoc.exists) {
+      String reporterUid = reportDoc['user_uid'];
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(reporterUid)
           .get();
-      if (reportDoc.exists) {
+
+      if (userDoc.exists) {
         setState(() {
-          _reporterEmail = reportDoc['user_email'];
+          _reporterEmail = userDoc['email'];
         });
       }
-    } catch (e) {
-      print('Error fetching reporter email: $e');
     }
+  } catch (e) {
+    print('Error fetching updated reporter email: $e');
   }
+}
 
   @override
   Widget build(BuildContext context) {

@@ -169,7 +169,8 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
         'details': _detailsController.text,
         'status': 'New',
         'imageUrl': imageUrl ?? '',
-        'user_email': email ?? '', // Save reporter's email
+        'user_email': email ?? '',
+        'user_uid': FirebaseAuth.instance.currentUser!.uid,
       });
 
       await _sendEmail(_name, _titleController.text, _detailsController.text);
