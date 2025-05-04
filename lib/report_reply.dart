@@ -165,8 +165,8 @@ class ReplyToReportPageState extends State<ReplyToReportPage> {
   Future<void> _sendEmailNotification(
       String recipientEmail, String adminName, String newStatus, String remarks, String reportTitle) async {
     
-    String senderEmail = "dormmaintenancereporthub@gmail.com"; 
-    String appPassword = "qplwtaaptzornudb";
+    String senderEmail = "spbravo@brc.pshs.edu.ph"; 
+    String appPassword = "eurvwknvzvduozfz";
 
     final smtpServer = gmail(senderEmail, appPassword);
 

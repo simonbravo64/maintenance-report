@@ -112,7 +112,7 @@ class _ReportViewingPageState extends State<ReportViewingPage> {
   final reportsRef = FirebaseFirestore.instance.collection('reports');
 
   if (role == 'user') {
-    return reportsRef.where('user_id', isEqualTo: uid).snapshots();
+    return reportsRef.where('user_uid', isEqualTo: uid).snapshots();
   } else {
     return reportsRef.snapshots();
   }
@@ -327,8 +327,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   }
 
   Future<void> _sendEmailNotification(List<String> recipientEmail, String reportTitle) async {
-  String username = "dormmaintenancereporthub@gmail.com"; 
-  String password = "qplwtaaptzornudb"; // App password
+  String username = "spbravo@brc.pshs.edu.ph"; 
+  String password = "eurvwknvzvduozfz"; // App password
 
   final smtpServer = gmail(username, password);
 

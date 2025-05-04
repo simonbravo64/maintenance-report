@@ -151,8 +151,8 @@ class FollowUpReportPageState extends State<FollowUpReportPage> {
     String remarks,
     String reportTitle,
   ) async {
-    String username = "dormmaintenancereporthub@gmail.com";
-    String password = "qplwtaaptzornudb";
+    String username = "spbravo@brc.pshs.edu.ph";
+    String password = "eurvwknvzvduozfz";
 
     final smtpServer = gmail(username, password);
 

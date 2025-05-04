@@ -95,8 +95,8 @@ class ReportSubmissionPageState extends State<ReportSubmissionPage> {
   }
 
   Future<void> _sendEmail(String senderName, String reportTitle, String reportDetails) async {
-    String username = "dormmaintenancereporthub@gmail.com"; 
-    String password = "qplwtaaptzornudb"; 
+    String username = "spbravo@brc.pshs.edu.ph"; 
+    String password = "eurvwknvzvduozfz"; 
 
     List<String> adminEmails = await _getAdminEmails();
 
